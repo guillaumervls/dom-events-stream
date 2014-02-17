@@ -3,7 +3,9 @@ var util = require('util');
 var _ = require('lodash');
 
 var _defaults = {
-  maxBufferSize: 10000
+  maxBufferSize: 10000,
+  serializer: JSON.stringify,
+  domElement: document.documentElement
 };
 
 function defaults(options) {
@@ -11,11 +13,8 @@ function defaults(options) {
   _defaults = _.defaults(options, _defaults);
 }
 
-function listener(evt) {
-  var data = JSON.stringify({
-    x: evt.clientX,
-    y: evt.clientY,
-  }) + '\n';
+function pushData(data) {
+  data = this._options.serializer(data) + '\n';
   if (this._needsPush) {
     this._needsPush = false;
     this.push(data);
@@ -27,9 +26,9 @@ function listener(evt) {
   }
 }
 
-function MouseStream(options) {
-  if (!(this instanceof MouseStream)) {
-    return new MouseStream();
+function DOMStream(options) {
+  if (!(this instanceof DOMStream)) {
+    return new DOMStream();
   }
   Readable.call(this, {
     objectMode: true
@@ -37,13 +36,25 @@ function MouseStream(options) {
   this._options = _.defaults(options || {}, _defaults);
   this._buffer = [];
   this._needsPush = false;
-  this._listener = listener.bind(this);
-  document.documentElement.addEventListener('mousemove', this._listener);
+  _.forEach(options.events, function (event) {
+    event.domElement = event.domElement || this._options.domElement;
+    var processer = (event.processer instanceof Array) ?
+        function (evt) {
+          return _.pick(evt, event.processer);
+      } :
+        (event.processer || _.constant({}));
+    event.listener = function (evt) {
+      pushData.call(this, _.defaults(processer(evt), {
+        type: event.name
+      }));
+    }.bind(this);
+    event.domElement.addEventListener(event.name, event.listener);
+  });
 }
 
-util.inherits(MouseStream, Readable);
+util.inherits(DOMStream, Readable);
 
-MouseStream.prototype._read = function () {
+DOMStream.prototype._read = function () {
   var data = this._buffer.shift();
   if (!data) {
     this._needsPush = true;
@@ -54,10 +65,12 @@ MouseStream.prototype._read = function () {
   }
 };
 
-MouseStream.prototype.close = function () {
-  document.documentElement.removeEventListener('mousemove', this._listener);
+DOMStream.prototype.close = function () {
+  _.forEach(this._options.events, function (event) {
+    event.domElement.removeEventListener(event.name, event.listener);
+  });
   this.push(null);
 };
 
-module.exports = MouseStream;
+module.exports = DOMStream;
 module.exports.defaults = defaults;

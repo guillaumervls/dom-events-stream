@@ -18,12 +18,24 @@ module.exports = function (grunt) {
         src: 'src/main.js',
         dest: 'dist/dom-events-stream.js'
       }
+    },
+    uglify: {
+      options: {
+        banner: '/*! DOM Events Stream - guillaumervls <%= grunt.template.today("yyyy-mm-dd") %> */\n'
+      },
+      dist: {
+        files: {
+          'dist/dom-events-stream.js': ['dist/dom-events-stream.js']
+        }
+      }
     }
   });
 
+  grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-browserify');
 
   grunt.registerTask('lint', ['jshint']);
-  grunt.registerTask('default', ['lint', 'browserify']);
+  grunt.registerTask('dev', ['lint', 'browserify']);
+  grunt.registerTask('default', ['lint', 'browserify', 'uglify']);
 };
