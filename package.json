@@ -1,6 +1,6 @@
 {
   "name": "dom-events-stream",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Create streams of DOM events",
   "main": "src/main.js",
   "scripts": {

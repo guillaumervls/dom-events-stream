@@ -49,7 +49,7 @@ function DOMStream(options) {
       }));
     }.bind(this);
     event.domElement.addEventListener(event.name, event.listener);
-  });
+  }.bind(this));
 }
 
 util.inherits(DOMStream, Readable);
